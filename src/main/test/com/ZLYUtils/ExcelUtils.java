@@ -57,50 +57,48 @@ public class ExcelUtils {
         if (!excelPath.getName().endsWith(".xlsx")) {
             excelPath = new File(excelPath + ".xlsx");
         }
-        // XSSFWork used for .xslx (>= 2007), HSSWorkbook for 03 .xsl
-        Workbook workbook = new XSSFWorkbook();//HSSFWorkbook();//WorkbookFactory.create(inputStream);
-        Sheet sheet = workbook.createSheet(sheetName);
-        List<String> titleList = new ArrayList<>();
-        //读取出所有map的title
-        for (Map.Entry<Integer, Map<String, String>> mapEntry : dataMap.entrySet()) {
-            for (Map.Entry<String, String> m : mapEntry.getValue().entrySet()) {
-                if (!titleList.contains(m.getKey())) titleList.add(m.getKey());
-            }
-        }
-        Cell cell;
-        Row row0 = sheet.createRow(0);
-        //写入标题
-        for (int i = 0; i < titleList.size(); i++) {
-            cell = row0.createCell(i, CellType.STRING);
-            cell.setCellStyle(getCellStyle(workbook));
-            cell.setCellValue(titleList.get(i));
-            sheet.autoSizeColumn(i);
-        }
-        int index = 1;
-        String value;
-        Row row;
-        for (Map.Entry<Integer, Map<String, String>> integerMapEntry : dataMap.entrySet()) {
-            //插入数据
-            row = sheet.createRow(index);
-            for (int i = 0; i < titleList.size(); i++) {
-                value = integerMapEntry.getValue().get(titleList.get(i));
-                value = value == null ? "" : value;
-                try {
-                    cell = row.createCell(i, CellType.NUMERIC);
-                    cell.setCellValue(Double.parseDouble(value));
-                } catch (Exception e) {
-                    cell = row.createCell(i, CellType.STRING);
-                    cell.setCellValue(value);
+        //HSSFWorkbook();//WorkbookFactory.create(inputStream)
+        try (Workbook workbook = new XSSFWorkbook();
+             FileOutputStream outputStream = new FileOutputStream(excelPath)) {
+            // XSSFWork used for .xslx (>= 2007), HSSWorkbook for 03 .xsl
+            Sheet sheet = workbook.createSheet(sheetName);
+            List<String> titleList = new ArrayList<>();
+            //读取出所有map的title
+            for (Map.Entry<Integer, Map<String, String>> mapEntry : dataMap.entrySet()) {
+                for (Map.Entry<String, String> m : mapEntry.getValue().entrySet()) {
+                    if (!titleList.contains(m.getKey())) titleList.add(m.getKey());
                 }
             }
-            index++;
-        }
-        try {
-            FileOutputStream outputStream = new FileOutputStream(excelPath);
+            Cell cell;
+            Row row0 = sheet.createRow(0);
+            //写入标题
+            for (int i = 0; i < titleList.size(); i++) {
+                cell = row0.createCell(i, CellType.STRING);
+                cell.setCellStyle(getCellStyle(workbook));
+                cell.setCellValue(titleList.get(i));
+                sheet.autoSizeColumn(i);
+            }
+            int index = 1;
+            String value;
+            Row row;
+            for (Map.Entry<Integer, Map<String, String>> integerMapEntry : dataMap.entrySet()) {
+                //插入数据
+                row = sheet.createRow(index);
+                for (int i = 0; i < titleList.size(); i++) {
+                    value = integerMapEntry.getValue().get(titleList.get(i));
+                    value = value == null ? "" : value;
+                    try {
+                        cell = row.createCell(i, CellType.NUMERIC);
+                        cell.setCellValue(Double.parseDouble(value));
+                    } catch (Exception e) {
+                        cell = row.createCell(i, CellType.STRING);
+                        cell.setCellValue(value);
+                    }
+                }
+                index++;
+            }
             workbook.write(outputStream);
             outputStream.flush();
-            outputStream.close();
-            workbook.close();
         } catch (IOException e) {
             throw new IOException(e);
         }
