@@ -41,7 +41,6 @@ public class MobileDrive {
 
     private void setMobileVersion() {
         List<String> list = AdbUtils.executeAdbCommand("shell getprop ro.build.version.release");
-        AppAssert.assertEquals(list.size(), 1);
         this.mobileVersion = list.get(0).trim().split("\\.")[0];
         AppAssert.assertTrue(Double.parseDouble(this.mobileVersion) > 6, this.mobileVersion, 6, "版本需要大于6.0");
 
