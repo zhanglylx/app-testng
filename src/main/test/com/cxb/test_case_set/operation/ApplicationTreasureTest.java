@@ -24,10 +24,18 @@ import java.util.regex.Pattern;
 
 public class ApplicationTreasureTest extends BaseTestModule {
 
-
+    /**
+     * 应用宝获取评价,应用宝版本：7.5.1 build0773
+     * @throws InterruptedException
+     */
     @Test
     public void demo() throws InterruptedException {
         final String appname = "免费电子书";
+        final ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+        final Map<Integer, Map<String, String>> evaluationMap = new LinkedHashMap<>();
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        String text;
+        Integer number = null;
         this.getDriver().findElement(By.id("com.tencent.android.qqdownloader:id/awt")).click();//        点击搜索框
         this.sleep();//加载内容需要等待
         this.getDriver().findElement(By.id("com.tencent.android.qqdownloader:id/yv")).sendKeys(appname);//        输入搜索内容
@@ -36,8 +44,7 @@ public class ApplicationTreasureTest extends BaseTestModule {
         Objects.requireNonNull(AppiumElementUtils.findWEMListText(
                 this.getDriver().findElementsByAndroidUIAutomator(AppiumUiSelectorUtils.textUiSelector(appname)), appname, 1
         )).click();//点击名称为appname相同的元素第2个
-        String text;
-        int number = 0;
+        //点击评价并获取评价数量
         for (WebElement element : this.getDriver().findElements(By.className("android.widget.TextView"))) {
             text = element.getText();
             if (text != null && text.trim().startsWith("评价")) {
@@ -51,12 +58,11 @@ public class ApplicationTreasureTest extends BaseTestModule {
         System.out.println("评价数量:" + number);
         this.sleep();
         AppiumOperatingUtils.swipeBottomToTop();
-        ScheduledExecutorService service = Executors
-                .newSingleThreadScheduledExecutor();
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        Map<Integer, Map<String, String>> mapMap = new LinkedHashMap<>();
-        int finalNumber = number;
-        ScheduledFuture<?> future = service.scheduleAtFixedRate(() -> {
+        int finalNumber = Objects.requireNonNull(number);
+        /*
+        获取评价具体内容,一直到所有评价获取完毕后终止定时任务
+         */
+        ScheduledFuture<?> scheduleAtFixedRate = service.scheduleAtFixedRate(() -> {
             List<WebElement> elements = getDriver()
                     .findElement(By.id("com.tencent.android.qqdownloader:id/xi"))
                     .findElements(By.className("android.widget.RelativeLayout"));
@@ -71,12 +77,12 @@ public class ApplicationTreasureTest extends BaseTestModule {
                         map.put("日期", element.
                                 findElement(By.id("com.tencent.android.qqdownloader:id/z6")).getText());
                         map.put("点赞", element.findElement(By.id("com.tencent.android.qqdownloader:id/ss")).getAttribute("content-desc"));
-                        if (!mapMap.containsValue(map)) mapMap.put(mapMap.size(), map);
-                        if (mapMap.size() >= finalNumber) {
+                        if (!evaluationMap.containsValue(map)) evaluationMap.put(evaluationMap.size(), map);//没有重复的内容插入评价
+                        if (evaluationMap.size() >= finalNumber) {
                             System.out.println("关闭");
                             countDownLatch.countDown();
                         }
-                        System.out.println(mapMap);
+                        System.out.println(evaluationMap);
                     }
                 } catch (NoSuchElementException ignored) {
                     break;
@@ -85,7 +91,7 @@ public class ApplicationTreasureTest extends BaseTestModule {
             AppiumOperatingUtils.swipeBottomToTop();
         }, 0, 1, TimeUnit.SECONDS);
         countDownLatch.await();
-        future.cancel(true);
+        scheduleAtFixedRate.cancel(true);
         service.shutdown();
     }
 
